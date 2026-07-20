@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Banner Editor</title>
+<style>
+  :root {
+    --bg: #f4f4f5;
+    --panel: #ffffff;
+    --border: #e4e4e7;
+    --text: #18181b;
+    --muted: #71717a;
+    --accent: #6d28d9;
+    --accent-hover: #5b21b6;
+    --accent-soft: #faf9ff;
+    --danger: #dc2626;
+    --radius: 6px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 24px 16px 48px;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.4;
+  }
+  main { max-width: 1200px; margin: 0 auto; }
+  h1 { font-size: 20px; margin: 0 0 4px; font-weight: 600; }
+  .sub { color: var(--muted); font-size: 14px; margin: 0 0 20px; }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+  .panel h2 {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    margin: 0 0 12px;
+    font-weight: 600;
+  }
+
+  .upload-zone {
+    border: 2px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 48px 16px;
+    text-align: center;
+    cursor: pointer;
+    background: var(--panel);
+    transition: border-color .15s, background .15s;
+  }
+  .upload-zone:hover, .upload-zone:focus-visible {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+    outline: none;
+  }
+  .upload-zone p { margin: 8px 0 0; font-weight: 500; }
+  .upload-zone .hint { color: var(--muted); font-size: 13px; font-weight: 400; margin-top: 4px; }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    gap: 16px;
+    align-items: start;
+  }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+
+  .field { margin-bottom: 12px; }
+  .field:last-child { margin-bottom: 0; }
+  label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 4px; }
+  input[type="text"], input[type="number"], textarea, select {
+    width: 100%;
+    padding: 6px 8px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font: inherit;
+    font-size: 14px;
+    background: white;
+  }
+  input:focus, textarea:focus, select:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: -1px;
+    border-color: var(--accent);
+  }
+  textarea { resize: vertical; min-height: 60px; font-family: inherit; }
+  input[type="range"] { width: 100%; }
+  input[type="color"] {
+    width: 44px; height: 32px; padding: 2px;
+    border: 1px solid var(--border); border-radius: 4px;
+    cursor: pointer; background: white;
+  }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .row { display: flex; align-items: center; gap: 8px; }
+  .row label { margin: 0; }
+
+  .preset-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
+  .preset-row button {
+    padding: 8px 4px;
+    font-size: 13px;
+    border: 1px solid var(--border);
+    background: white;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .preset-row button:hover { background: #f4f4f5; }
+  .preset-row button.active {
+    background: var(--accent); color: white; border-color: var(--accent);
+  }
+
+  .fit-modes label {
+    display: flex; align-items: flex-start; gap: 8px;
+    padding: 6px 4px; cursor: pointer; font-weight: normal; margin-bottom: 0;
+  }
+  .fit-modes input { margin-top: 3px; }
+  .fit-modes .name { font-weight: 500; font-size: 13px; }
+  .fit-modes .desc { font-size: 12px; color: var(--muted); }
+
+  .toggle-row {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 12px; font-weight: 500;
+  }
+
+  .position-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px;
+    max-width: 160px;
+  }
+  .position-grid button {
+    aspect-ratio: 1;
+    border: 1px solid var(--border);
+    background: white;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--muted);
+    font-family: inherit;
+  }
+  .position-grid button:hover { background: #f4f4f5; color: var(--text); }
+
+  .preview-wrap {
+    background:
+      repeating-conic-gradient(#e4e4e7 0% 25%, #f4f4f5 0% 50%) 50% / 16px 16px;
+    padding: 16px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    overflow: auto;
+  }
+  .preview-wrap canvas {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    box-shadow: 0 2px 8px rgba(0,0,0,.15);
+    touch-action: none;
+  }
+  .preview-wrap canvas.can-drag { cursor: grab; }
+  .preview-wrap canvas.dragging { cursor: grabbing; }
+  .preview-info {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 13px; color: var(--muted);
+    margin-top: 8px; gap: 8px; flex-wrap: wrap;
+  }
+
+  .actions { display: flex; gap: 8px; margin-top: 12px; }
+  button.primary {
+    background: var(--accent); color: white; border: none;
+    padding: 10px 20px; border-radius: var(--radius);
+    font-family: inherit; font-size: 14px; font-weight: 500;
+    cursor: pointer; flex: 1;
+  }
+  button.primary:hover { background: var(--accent-hover); }
+  button.secondary {
+    background: white; color: var(--text);
+    border: 1px solid var(--border);
+    padding: 8px 14px; border-radius: var(--radius);
+    font-family: inherit; font-size: 14px; cursor: pointer;
+  }
+  button.secondary:hover { background: #f4f4f5; }
+
+  .error {
+    padding: 8px 12px; background: #fef2f2; color: var(--danger);
+    border: 1px solid #fecaca; border-radius: 4px;
+    font-size: 13px; margin-top: 8px;
+  }
+
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Banner Editor</h1>
+  <p class="sub">Upload, resize, crop, and add a movable text overlay for WordPress banners.</p>
+
+  <section id="upload-section" class="panel">
+    <div class="upload-zone" tabindex="0" role="button" id="upload-zone" aria-label="Upload image">
+      <p>Click or drop an image to start</p>
+      <p class="hint">JPG, PNG, GIF, or WebP</p>
+    </div>
+    <div id="upload-error" class="error" hidden></div>
+  </section>
+
+  <section id="editor-section" hidden>
+    <div class="layout">
+      <div>
+        <div class="panel">
+          <h2>Image</h2>
+          <div id="image-info" class="field" style="color: var(--muted); font-size: 13px;"></div>
+          <button class="secondary" id="change-image">Change image</button>
+        </div>
+
+        <div class="panel">
+          <h2>Size</h2>
+          <div class="preset-row" id="presets"></div>
+          <div class="grid-2" style="margin-top: 12px;">
+            <div>
+              <label for="width">Width (px)</label>
+              <input type="number" id="width" min="1" value="1200">
+            </div>
+            <div>
+              <label for="height">Height (px)</label>
+              <input type="number" id="height" min="1" value="300">
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2>Fit</h2>
+          <div class="fit-modes" id="fit-modes"></div>
+        </div>
+
+        <div class="panel">
+          <h2>Crop (source pixels)</h2>
+          <div class="field">
+            <label for="crop-top">Top: <span id="crop-top-val">0</span>px</label>
+            <input type="range" id="crop-top" min="0" value="0" step="1">
+          </div>
+          <div class="field">
+            <label for="crop-bottom">Bottom: <span id="crop-bottom-val">0</span>px</label>
+            <input type="range" id="crop-bottom" min="0" value="0" step="1">
+          </div>
+          <div class="field">
+            <label for="crop-left">Left: <span id="crop-left-val">0</span>px</label>
+            <input type="range" id="crop-left" min="0" value="0" step="1">
+          </div>
+          <div class="field">
+            <label for="crop-right">Right: <span id="crop-right-val">0</span>px</label>
+            <input type="range" id="crop-right" min="0" value="0" step="1">
+          </div>
+          <button class="secondary" id="reset-crop">Reset crop</button>
+        </div>
+
+        <div class="panel">
+          <h2>Text overlay</h2>
+          <label class="toggle-row">
+            <input type="checkbox" id="text-enabled"> Enable text box
+          </label>
+          <div id="text-controls" hidden>
+            <div class="field">
+              <label for="text-value">Text (line breaks allowed)</label>
+              <textarea id="text-value" rows="2">Your text here</textarea>
+            </div>
+            <div class="field">
+              <label for="text-font">Font</label>
+              <select id="text-font">
+                <option value="system-ui, sans-serif">System Sans</option>
+                <option value="Georgia, serif">Georgia</option>
+                <option value="'Times New Roman', serif">Times New Roman</option>
+                <option value="Arial, sans-serif">Arial</option>
+                <option value="'Helvetica Neue', Helvetica, sans-serif">Helvetica</option>
+                <option value="'Trebuchet MS', sans-serif">Trebuchet MS</option>
+                <option value="'Courier New', monospace">Courier New</option>
+                <option value="Impact, sans-serif">Impact</option>
+              </select>
+            </div>
+            <div class="grid-2">
+              <div class="field">
+                <label for="text-size">Size (px)</label>
+                <input type="number" id="text-size" min="8" max="400" value="48">
+              </div>
+              <div class="field">
+                <label for="text-weight">Weight</label>
+                <select id="text-weight">
+                  <option value="normal">Normal</option>
+                  <option value="bold" selected>Bold</option>
+                </select>
+              </div>
+            </div>
+            <div class="field">
+              <label for="text-align">Alignment</label>
+              <select id="text-align">
+                <option value="left">Left</option>
+                <option value="center">Center</option>
+                <option value="right">Right</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Text color</label>
+              <div class="row">
+                <input type="color" id="text-color" value="#ffffff">
+                <input type="text" id="text-color-hex" value="#ffffff" style="flex:1;" spellcheck="false">
+              </div>
+            </div>
+            <div class="field">
+              <label>Background color</label>
+              <div class="row">
+                <input type="color" id="text-bg" value="#000000">
+                <input type="text" id="text-bg-hex" value="#000000" style="flex:1;" spellcheck="false">
+              </div>
+            </div>
+            <div class="field">
+              <label for="text-bg-alpha">Background opacity: <span id="text-bg-alpha-val">60%</span></label>
+              <input type="range" id="text-bg-alpha" min="0" max="100" value="60">
+            </div>
+            <div class="grid-2">
+              <div class="field">
+                <label for="text-pad-x">Padding X</label>
+                <input type="number" id="text-pad-x" min="0" value="20">
+              </div>
+              <div class="field">
+                <label for="text-pad-y">Padding Y</label>
+                <input type="number" id="text-pad-y" min="0" value="12">
+              </div>
+            </div>
+            <div class="field">
+              <label>Snap position</label>
+              <div class="position-grid" id="position-grid">
+                <button type="button" data-pos="tl" aria-label="Top left">↖</button>
+                <button type="button" data-pos="tc" aria-label="Top center">↑</button>
+                <button type="button" data-pos="tr" aria-label="Top right">↗</button>
+                <button type="button" data-pos="ml" aria-label="Middle left">←</button>
+                <button type="button" data-pos="mc" aria-label="Center">•</button>
+                <button type="button" data-pos="mr" aria-label="Middle right">→</button>
+                <button type="button" data-pos="bl" aria-label="Bottom left">↙</button>
+                <button type="button" data-pos="bc" aria-label="Bottom center">↓</button>
+                <button type="button" data-pos="br" aria-label="Bottom right">↘</button>
+              </div>
+              <p style="font-size:12px; color: var(--muted); margin: 8px 0 0;">
+                Or drag the box directly on the preview.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="panel">
+          <h2>Preview</h2>
+          <div class="preview-wrap">
+            <canvas id="preview"></canvas>
+          </div>
+          <div class="preview-info">
+            <span>Output: <span id="output-size">1200 × 300</span> px</span>
+            <span id="drag-hint" hidden>Drag the text box to reposition</span>
+          </div>
+          <div class="actions">
+            <button class="primary" id="download">Download JPG</button>
+            <button class="secondary" id="download-png">Download PNG</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<input type="file" id="file-input" accept="image/*" hidden>
+
+<script>
+(function() {
+  'use strict';
+
+  const state = {
+    image: null,
+    origW: 0,
+    origH: 0,
+    targetW: 1200,
+    targetH: 300,
+    fit: 'cover',
+    crop: { top: 0, right: 0, bottom: 0, left: 0 },
+    text: {
+      enabled: false,
+      value: 'Your text here',
+      font: 'system-ui, sans-serif',
+      size: 48,
+      weight: 'bold',
+      align: 'left',
+      color: '#ffffff',
+      bg: '#000000',
+      bgAlpha: 0.6,
+      padX: 20,
+      padY: 12,
+      x: 40,
+      y: 40
+    },
+    textBox: null // last-drawn bounds for hit-testing
+  };
+
+  const presets = [
+    { name: '1200x300', w: 1200, h: 300 },
+    { name: '1920x400', w: 1920, h: 400 },
+    { name: '1920x500', w: 1920, h: 500 },
+    { name: '1000x250', w: 1000, h: 250 },
+    { name: '800x200',  w: 800,  h: 200 },
+    { name: 'Custom',   w: null, h: null }
+  ];
+
+  const fitModes = [
+    { value: 'cover',   name: 'Cover',   desc: 'Fills banner, crops overflow' },
+    { value: 'contain', name: 'Contain', desc: 'Fits entire image, may show background' },
+    { value: 'fill',    name: 'Stretch', desc: 'Stretches to exact size (may distort)' }
+  ];
+
+  const $ = id => document.getElementById(id);
+  const canvas = $('preview');
+  const ctx = canvas.getContext('2d');
+  let selectedPreset = '1200x300';
+
+  // -------- UI construction --------
+  function renderPresets() {
+    const container = $('presets');
+    container.innerHTML = '';
+    presets.forEach(p => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.textContent = p.name === 'Custom' ? 'Custom' : `${p.w} × ${p.h}`;
+      btn.dataset.name = p.name;
+      btn.addEventListener('click', () => {
+        if (p.w) {
+          state.targetW = p.w;
+          state.targetH = p.h;
+          $('width').value = p.w;
+          $('height').value = p.h;
+        }
+        selectedPreset = p.name;
+        updatePresetButtons();
+        render();
+      });
+      container.appendChild(btn);
+    });
+    updatePresetButtons();
+  }
+
+  function updatePresetButtons() {
+    document.querySelectorAll('#presets button').forEach(b => {
+      b.classList.toggle('active', b.dataset.name === selectedPreset);
+    });
+  }
+
+  function renderFitModes() {
+    const container = $('fit-modes');
+    container.innerHTML = '';
+    fitModes.forEach(m => {
+      const label = document.createElement('label');
+      label.innerHTML = `
+        <input type="radio" name="fit" value="${m.value}" ${state.fit === m.value ? 'checked' : ''}>
+        <div>
+          <div class="name">${m.name}</div>
+          <div class="desc">${m.desc}</div>
+        </div>`;
+      label.querySelector('input').addEventListener('change', e => {
+        state.fit = e.target.value;
+        render();
+      });
+      container.appendChild(label);
+    });
+  }
+
+  // -------- File handling --------
+  function loadFile(file) {
+    if (!file) return;
+    $('upload-error').hidden = true;
+    if (!file.type.startsWith('image/')) {
+      showError('Please select an image file.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        state.image = img;
+        state.origW = img.naturalWidth;
+        state.origH = img.naturalHeight;
+        state.crop = { top: 0, right: 0, bottom: 0, left: 0 };
+        setupCropSliders();
+        $('image-info').textContent = `Original: ${state.origW} × ${state.origH}px`;
+        $('upload-section').hidden = true;
+        $('editor-section').hidden = false;
+        render();
+      };
+      img.onerror = () => showError('Could not load image. Try a different file.');
+      img.src = e.target.result;
+    };
+    reader.onerror = () => showError('Failed to read file.');
+    reader.readAsDataURL(file);
+  }
+
+  function showError(msg) {
+    const el = $('upload-error');
+    el.textContent = msg;
+    el.hidden = false;
+  }
+
+  // -------- Crop sliders --------
+  function setupCropSliders() {
+    const maxV = Math.floor(state.origH * 0.9);
+    const maxH = Math.floor(state.origW * 0.9);
+    $('crop-top').max = maxV;
+    $('crop-bottom').max = maxV;
+    $('crop-left').max = maxH;
+    $('crop-right').max = maxH;
+    ['crop-top','crop-bottom','crop-left','crop-right'].forEach(id => { $(id).value = 0; });
+    updateCropLabels();
+  }
+
+  function updateCropLabels() {
+    $('crop-top-val').textContent = state.crop.top;
+    $('crop-bottom-val').textContent = state.crop.bottom;
+    $('crop-left-val').textContent = state.crop.left;
+    $('crop-right-val').textContent = state.crop.right;
+  }
+
+  // -------- Rendering --------
+  function render() {
+    if (!state.image) return;
+    canvas.width = state.targetW;
+    canvas.height = state.targetH;
+
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, state.targetW, state.targetH);
+
+    const sx = state.crop.left;
+    const sy = state.crop.top;
+    const sw = Math.max(1, state.origW - state.crop.left - state.crop.right);
+    const sh = Math.max(1, state.origH - state.crop.top - state.crop.bottom);
+
+    let dw, dh, dx, dy;
+    if (state.fit === 'fill') {
+      dw = state.targetW; dh = state.targetH; dx = 0; dy = 0;
+    } else {
+      const scale = state.fit === 'contain'
+        ? Math.min(state.targetW / sw, state.targetH / sh)
+        : Math.max(state.targetW / sw, state.targetH / sh);
+      dw = sw * scale;
+      dh = sh * scale;
+      dx = (state.targetW - dw) / 2;
+      dy = (state.targetH - dh) / 2;
+    }
+    ctx.drawImage(state.image, sx, sy, sw, sh, dx, dy, dw, dh);
+
+    if (state.text.enabled) {
+      drawText();
+      canvas.classList.add('can-drag');
+    } else {
+      state.textBox = null;
+      canvas.classList.remove('can-drag');
+    }
+
+    $('output-size').textContent = `${state.targetW} × ${state.targetH}`;
+    $('drag-hint').hidden = !state.text.enabled;
+  }
+
+  function drawText() {
+    const t = state.text;
+    const raw = t.value == null ? '' : String(t.value);
+    if (raw.trim() === '') { state.textBox = null; return; }
+
+    const lines = raw.split('\n');
+    ctx.font = `${t.weight} ${t.size}px ${t.font}`;
+    ctx.textBaseline = 'top';
+
+    let maxW = 0;
+    for (const line of lines) {
+      const w = ctx.measureText(line).width;
+      if (w > maxW) maxW = w;
+    }
+    const lineH = t.size * 1.2;
+    const textH = lineH * lines.length;
+    const boxW = Math.ceil(maxW + t.padX * 2);
+    const boxH = Math.ceil(textH + t.padY * 2);
+
+    // Clamp to canvas
+    const x = Math.max(0, Math.min(state.targetW - boxW, t.x));
+    const y = Math.max(0, Math.min(state.targetH - boxH, t.y));
+    t.x = x; t.y = y;
+
+    if (t.bgAlpha > 0) {
+      ctx.fillStyle = hexToRgba(t.bg, t.bgAlpha);
+      ctx.fillRect(x, y, boxW, boxH);
+    }
+
+    ctx.fillStyle = t.color;
+    lines.forEach((line, i) => {
+      const w = ctx.measureText(line).width;
+      let tx = x + t.padX;
+      if (t.align === 'center') tx = x + (boxW - w) / 2;
+      else if (t.align === 'right') tx = x + boxW - t.padX - w;
+      ctx.fillText(line, tx, y + t.padY + i * lineH);
+    });
+
+    state.textBox = { x, y, w: boxW, h: boxH };
+  }
+
+  function hexToRgba(hex, alpha) {
+    const h = hex.replace('#', '');
+    const n = parseInt(h, 16);
+    const r = (n >> 16) & 255;
+    const g = (n >> 8) & 255;
+    const b = n & 255;
+    return `rgba(${r},${g},${b},${alpha})`;
+  }
+
+  // -------- Drag text box on canvas --------
+  let dragging = false;
+  const dragOffset = { x: 0, y: 0 };
+
+  function canvasCoords(e) {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    return {
+      x: (e.clientX - rect.left) * scaleX,
+      y: (e.clientY - rect.top) * scaleY
+    };
+  }
+
+  canvas.addEventListener('pointerdown', e => {
+    if (!state.text.enabled || !state.textBox) return;
+    const p = canvasCoords(e);
+    const b = state.textBox;
+    if (p.x >= b.x && p.x <= b.x + b.w && p.y >= b.y && p.y <= b.y + b.h) {
+      dragging = true;
+      dragOffset.x = p.x - b.x;
+      dragOffset.y = p.y - b.y;
+      canvas.setPointerCapture(e.pointerId);
+      canvas.classList.add('dragging');
+    }
+  });
+
+  canvas.addEventListener('pointermove', e => {
+    if (!dragging) return;
+    const p = canvasCoords(e);
+    state.text.x = Math.round(p.x - dragOffset.x);
+    state.text.y = Math.round(p.y - dragOffset.y);
+    render();
+  });
+
+  function endDrag() {
+    dragging = false;
+    canvas.classList.remove('dragging');
+  }
+  canvas.addEventListener('pointerup', endDrag);
+  canvas.addEventListener('pointercancel', endDrag);
+
+  // -------- Snap position grid --------
+  function snapText(pos) {
+    if (!state.textBox) return;
+    const b = state.textBox;
+    const margin = 20;
+    const positions = {
+      tl: [margin, margin],
+      tc: [(state.targetW - b.w) / 2, margin],
+      tr: [state.targetW - b.w - margin, margin],
+      ml: [margin, (state.targetH - b.h) / 2],
+      mc: [(state.targetW - b.w) / 2, (state.targetH - b.h) / 2],
+      mr: [state.targetW - b.w - margin, (state.targetH - b.h) / 2],
+      bl: [margin, state.targetH - b.h - margin],
+      bc: [(state.targetW - b.w) / 2, state.targetH - b.h - margin],
+      br: [state.targetW - b.w - margin, state.targetH - b.h - margin]
+    };
+    const [x, y] = positions[pos];
+    state.text.x = Math.round(x);
+    state.text.y = Math.round(y);
+    render();
+  }
+
+  document.querySelectorAll('#position-grid button').forEach(b => {
+    b.addEventListener('click', () => snapText(b.dataset.pos));
+  });
+
+  // -------- Download --------
+  function download(mime, ext, quality) {
+    if (!state.image) return;
+    canvas.toBlob(blob => {
+      if (!blob) { alert('Failed to create image.'); return; }
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `banner-${state.targetW}x${state.targetH}.${ext}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 100);
+    }, mime, quality);
+  }
+  $('download').addEventListener('click', () => download('image/jpeg', 'jpg', 0.95));
+  $('download-png').addEventListener('click', () => download('image/png', 'png'));
+
+  // -------- Event wiring --------
+  const fileInput = $('file-input');
+  const uploadZone = $('upload-zone');
+
+  uploadZone.addEventListener('click', () => fileInput.click());
+  uploadZone.addEventListener('keydown', e => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInput.click(); }
+  });
+  uploadZone.addEventListener('dragover', e => {
+    e.preventDefault();
+    uploadZone.style.borderColor = 'var(--accent)';
+    uploadZone.style.background = 'var(--accent-soft)';
+  });
+  uploadZone.addEventListener('dragleave', () => {
+    uploadZone.style.borderColor = '';
+    uploadZone.style.background = '';
+  });
+  uploadZone.addEventListener('drop', e => {
+    e.preventDefault();
+    uploadZone.style.borderColor = '';
+    uploadZone.style.background = '';
+    if (e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]);
+  });
+  fileInput.addEventListener('change', e => {
+    if (e.target.files[0]) loadFile(e.target.files[0]);
+    e.target.value = '';
+  });
+  $('change-image').addEventListener('click', () => fileInput.click());
+
+  $('width').addEventListener('input', e => {
+    const v = parseInt(e.target.value, 10);
+    if (v > 0) { state.targetW = v; selectedPreset = 'Custom'; updatePresetButtons(); render(); }
+  });
+  $('height').addEventListener('input', e => {
+    const v = parseInt(e.target.value, 10);
+    if (v > 0) { state.targetH = v; selectedPreset = 'Custom'; updatePresetButtons(); render(); }
+  });
+
+  ['top','bottom','left','right'].forEach(side => {
+    $('crop-' + side).addEventListener('input', e => {
+      state.crop[side] = parseInt(e.target.value, 10) || 0;
+      updateCropLabels();
+      render();
+    });
+  });
+  $('reset-crop').addEventListener('click', () => {
+    state.crop = { top: 0, right: 0, bottom: 0, left: 0 };
+    ['crop-top','crop-bottom','crop-left','crop-right'].forEach(id => $(id).value = 0);
+    updateCropLabels();
+    render();
+  });
+
+  $('text-enabled').addEventListener('change', e => {
+    state.text.enabled = e.target.checked;
+    $('text-controls').hidden = !e.target.checked;
+    render();
+  });
+  $('text-value').addEventListener('input', e => { state.text.value = e.target.value; render(); });
+  $('text-font').addEventListener('change', e => { state.text.font = e.target.value; render(); });
+  $('text-size').addEventListener('input', e => { state.text.size = parseInt(e.target.value, 10) || 48; render(); });
+  $('text-weight').addEventListener('change', e => { state.text.weight = e.target.value; render(); });
+  $('text-align').addEventListener('change', e => { state.text.align = e.target.value; render(); });
+  $('text-pad-x').addEventListener('input', e => { state.text.padX = parseInt(e.target.value, 10) || 0; render(); });
+  $('text-pad-y').addEventListener('input', e => { state.text.padY = parseInt(e.target.value, 10) || 0; render(); });
+
+  function syncColor(colorId, hexId, key) {
+    const c = $(colorId), h = $(hexId);
+    c.addEventListener('input', () => { state.text[key] = c.value; h.value = c.value; render(); });
+    h.addEventListener('change', () => {
+      const v = h.value.trim();
+      if (/^#[0-9a-fA-F]{6}$/.test(v)) { state.text[key] = v; c.value = v; render(); }
+      else h.value = c.value;
+    });
+  }
+  syncColor('text-color', 'text-color-hex', 'color');
+  syncColor('text-bg', 'text-bg-hex', 'bg');
+
+  $('text-bg-alpha').addEventListener('input', e => {
+    const v = parseInt(e.target.value, 10);
+    state.text.bgAlpha = v / 100;
+    $('text-bg-alpha-val').textContent = v + '%';
+    render();
+  });
+
+  renderPresets();
+  renderFitModes();
+})();
+</script>
+</body>
+</html>
