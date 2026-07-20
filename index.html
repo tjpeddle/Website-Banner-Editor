@@ -144,6 +144,8 @@
   }
   .position-grid button:hover { background: #f4f4f5; color: var(--text); }
 
+  .hint-text { font-size: 12px; color: var(--muted); margin: 6px 0 0; }
+
   .preview-wrap {
     background:
       repeating-conic-gradient(#e4e4e7 0% 25%, #f4f4f5 0% 50%) 50% / 16px 16px;
@@ -159,8 +161,6 @@
     box-shadow: 0 2px 8px rgba(0,0,0,.15);
     touch-action: none;
   }
-  .preview-wrap canvas.can-drag { cursor: grab; }
-  .preview-wrap canvas.dragging { cursor: grabbing; }
   .preview-info {
     display: flex; justify-content: space-between; align-items: center;
     font-size: 13px; color: var(--muted);
@@ -195,7 +195,7 @@
 <body>
 <main>
   <h1>Banner Editor</h1>
-  <p class="sub">Upload, resize, crop, and add a movable text overlay for WordPress banners.</p>
+  <p class="sub">Upload, resize, crop, and add a movable, resizable text box overlay.</p>
 
   <section id="upload-section" class="panel">
     <div class="upload-zone" tabindex="0" role="button" id="upload-zone" aria-label="Upload image">
@@ -256,14 +256,16 @@
         </div>
 
         <div class="panel">
-          <h2>Text overlay</h2>
+          <h2>Text box</h2>
           <label class="toggle-row">
-            <input type="checkbox" id="text-enabled"> Enable text box
+            <input type="checkbox" id="text-enabled"> Show text box
           </label>
           <div id="text-controls" hidden>
             <div class="field">
-              <label for="text-value">Text (line breaks allowed)</label>
-              <textarea id="text-value" rows="2">Your text here</textarea>
+              <label for="text-value">Text (wraps automatically; Enter for new line)</label>
+              <textarea id="text-value" rows="3">Hours of Operation
+Monday – Friday
+8:00 am – 5:00 pm</textarea>
             </div>
             <div class="field">
               <label for="text-font">Font</label>
@@ -281,7 +283,7 @@
             <div class="grid-2">
               <div class="field">
                 <label for="text-size">Size (px)</label>
-                <input type="number" id="text-size" min="8" max="400" value="48">
+                <input type="number" id="text-size" min="8" max="400" value="20">
               </div>
               <div class="field">
                 <label for="text-weight">Weight</label>
@@ -291,13 +293,23 @@
                 </select>
               </div>
             </div>
-            <div class="field">
-              <label for="text-align">Alignment</label>
-              <select id="text-align">
-                <option value="left">Left</option>
-                <option value="center">Center</option>
-                <option value="right">Right</option>
-              </select>
+            <div class="grid-2">
+              <div class="field">
+                <label for="text-align">Align</label>
+                <select id="text-align">
+                  <option value="left" selected>Left</option>
+                  <option value="center">Center</option>
+                  <option value="right">Right</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="text-valign">V-align</label>
+                <select id="text-valign">
+                  <option value="top">Top</option>
+                  <option value="middle" selected>Middle</option>
+                  <option value="bottom">Bottom</option>
+                </select>
+              </div>
             </div>
             <div class="field">
               <label>Text color</label>
@@ -309,25 +321,36 @@
             <div class="field">
               <label>Background color</label>
               <div class="row">
-                <input type="color" id="text-bg" value="#000000">
-                <input type="text" id="text-bg-hex" value="#000000" style="flex:1;" spellcheck="false">
+                <input type="color" id="text-bg" value="#1e3a8a">
+                <input type="text" id="text-bg-hex" value="#1e3a8a" style="flex:1;" spellcheck="false">
               </div>
             </div>
             <div class="field">
-              <label for="text-bg-alpha">Background opacity: <span id="text-bg-alpha-val">60%</span></label>
-              <input type="range" id="text-bg-alpha" min="0" max="100" value="60">
+              <label for="text-bg-alpha">Background opacity: <span id="text-bg-alpha-val">85%</span></label>
+              <input type="range" id="text-bg-alpha" min="0" max="100" value="85">
             </div>
             <div class="grid-2">
               <div class="field">
                 <label for="text-pad-x">Padding X</label>
-                <input type="number" id="text-pad-x" min="0" value="20">
+                <input type="number" id="text-pad-x" min="0" value="16">
               </div>
               <div class="field">
                 <label for="text-pad-y">Padding Y</label>
                 <input type="number" id="text-pad-y" min="0" value="12">
               </div>
             </div>
-            <div class="field">
+            <div class="grid-2">
+              <div class="field">
+                <label for="text-w">Box width (px)</label>
+                <input type="number" id="text-w" min="20" value="280">
+              </div>
+              <div class="field">
+                <label for="text-h">Box height (px)</label>
+                <input type="number" id="text-h" min="20" value="140">
+              </div>
+            </div>
+            <p class="hint-text">Drag the box to move it. Grab a corner handle to resize.</p>
+            <div class="field" style="margin-top: 12px;">
               <label>Snap position</label>
               <div class="position-grid" id="position-grid">
                 <button type="button" data-pos="tl" aria-label="Top left">↖</button>
@@ -340,9 +363,6 @@
                 <button type="button" data-pos="bc" aria-label="Bottom center">↓</button>
                 <button type="button" data-pos="br" aria-label="Bottom right">↘</button>
               </div>
-              <p style="font-size:12px; color: var(--muted); margin: 8px 0 0;">
-                Or drag the box directly on the preview.
-              </p>
             </div>
           </div>
         </div>
@@ -356,7 +376,7 @@
           </div>
           <div class="preview-info">
             <span>Output: <span id="output-size">1200 × 300</span> px</span>
-            <span id="drag-hint" hidden>Drag the text box to reposition</span>
+            <span id="drag-hint" hidden>Drag box to move · corner handles to resize</span>
           </div>
           <div class="actions">
             <button class="primary" id="download">Download JPG</button>
@@ -374,6 +394,9 @@
 (function() {
   'use strict';
 
+  const MIN_BOX = 20;
+  const CURSORS = { tl: 'nwse-resize', br: 'nwse-resize', tr: 'nesw-resize', bl: 'nesw-resize' };
+
   const state = {
     image: null,
     origW: 0,
@@ -384,20 +407,22 @@
     crop: { top: 0, right: 0, bottom: 0, left: 0 },
     text: {
       enabled: false,
-      value: 'Your text here',
+      value: 'Hours of Operation\nMonday – Friday\n8:00 am – 5:00 pm',
       font: 'system-ui, sans-serif',
-      size: 48,
+      size: 20,
       weight: 'bold',
       align: 'left',
+      vAlign: 'middle',
       color: '#ffffff',
-      bg: '#000000',
-      bgAlpha: 0.6,
-      padX: 20,
+      bg: '#1e3a8a',
+      bgAlpha: 0.85,
+      padX: 16,
       padY: 12,
-      x: 40,
-      y: 40
-    },
-    textBox: null // last-drawn bounds for hit-testing
+      x: 900,
+      y: 80,
+      w: 280,
+      h: 140
+    }
   };
 
   const presets = [
@@ -490,6 +515,9 @@
         $('image-info').textContent = `Original: ${state.origW} × ${state.origH}px`;
         $('upload-section').hidden = true;
         $('editor-section').hidden = false;
+        // Position box on right side by default
+        state.text.x = Math.max(20, state.targetW - state.text.w - 20);
+        state.text.y = Math.max(20, (state.targetH - state.text.h) / 2);
         render();
       };
       img.onerror = () => showError('Could not load image. Try a different file.');
@@ -524,85 +552,136 @@
     $('crop-right-val').textContent = state.crop.right;
   }
 
-  // -------- Rendering --------
-  function render() {
+  // -------- Drawing (drawImageTo + drawTextTo work on any ctx) --------
+  function drawImageTo(c, cw, ch) {
+    c.fillStyle = '#ffffff';
+    c.fillRect(0, 0, cw, ch);
     if (!state.image) return;
-    canvas.width = state.targetW;
-    canvas.height = state.targetH;
-
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, state.targetW, state.targetH);
-
     const sx = state.crop.left;
     const sy = state.crop.top;
     const sw = Math.max(1, state.origW - state.crop.left - state.crop.right);
     const sh = Math.max(1, state.origH - state.crop.top - state.crop.bottom);
-
     let dw, dh, dx, dy;
     if (state.fit === 'fill') {
-      dw = state.targetW; dh = state.targetH; dx = 0; dy = 0;
+      dw = cw; dh = ch; dx = 0; dy = 0;
     } else {
       const scale = state.fit === 'contain'
-        ? Math.min(state.targetW / sw, state.targetH / sh)
-        : Math.max(state.targetW / sw, state.targetH / sh);
+        ? Math.min(cw / sw, ch / sh)
+        : Math.max(cw / sw, ch / sh);
       dw = sw * scale;
       dh = sh * scale;
-      dx = (state.targetW - dw) / 2;
-      dy = (state.targetH - dh) / 2;
+      dx = (cw - dw) / 2;
+      dy = (ch - dh) / 2;
     }
-    ctx.drawImage(state.image, sx, sy, sw, sh, dx, dy, dw, dh);
-
-    if (state.text.enabled) {
-      drawText();
-      canvas.classList.add('can-drag');
-    } else {
-      state.textBox = null;
-      canvas.classList.remove('can-drag');
-    }
-
-    $('output-size').textContent = `${state.targetW} × ${state.targetH}`;
-    $('drag-hint').hidden = !state.text.enabled;
+    c.drawImage(state.image, sx, sy, sw, sh, dx, dy, dw, dh);
   }
 
-  function drawText() {
+  function clampBox(cw, ch) {
     const t = state.text;
-    const raw = t.value == null ? '' : String(t.value);
-    if (raw.trim() === '') { state.textBox = null; return; }
+    t.w = Math.max(MIN_BOX, Math.min(t.w, cw));
+    t.h = Math.max(MIN_BOX, Math.min(t.h, ch));
+    t.x = Math.max(0, Math.min(t.x, cw - t.w));
+    t.y = Math.max(0, Math.min(t.y, ch - t.h));
+  }
 
-    const lines = raw.split('\n');
-    ctx.font = `${t.weight} ${t.size}px ${t.font}`;
-    ctx.textBaseline = 'top';
-
-    let maxW = 0;
-    for (const line of lines) {
-      const w = ctx.measureText(line).width;
-      if (w > maxW) maxW = w;
+  function wrapText(c, text, maxWidth) {
+    const paragraphs = String(text).split('\n');
+    const lines = [];
+    for (const para of paragraphs) {
+      if (para === '') { lines.push(''); continue; }
+      const words = para.split(' ');
+      let current = '';
+      for (const word of words) {
+        const test = current ? current + ' ' + word : word;
+        if (c.measureText(test).width <= maxWidth) {
+          current = test;
+        } else {
+          if (current) lines.push(current);
+          current = word;
+        }
+      }
+      if (current !== '') lines.push(current);
     }
-    const lineH = t.size * 1.2;
-    const textH = lineH * lines.length;
-    const boxW = Math.ceil(maxW + t.padX * 2);
-    const boxH = Math.ceil(textH + t.padY * 2);
+    return lines;
+  }
 
-    // Clamp to canvas
-    const x = Math.max(0, Math.min(state.targetW - boxW, t.x));
-    const y = Math.max(0, Math.min(state.targetH - boxH, t.y));
-    t.x = x; t.y = y;
+  function drawTextTo(c, cw, ch) {
+    const t = state.text;
+    if (!t.enabled) return;
+    clampBox(cw, ch);
+    const { x, y, w, h } = t;
 
+    // Background
     if (t.bgAlpha > 0) {
-      ctx.fillStyle = hexToRgba(t.bg, t.bgAlpha);
-      ctx.fillRect(x, y, boxW, boxH);
+      c.fillStyle = hexToRgba(t.bg, t.bgAlpha);
+      c.fillRect(x, y, w, h);
     }
 
-    ctx.fillStyle = t.color;
-    lines.forEach((line, i) => {
-      const w = ctx.measureText(line).width;
-      let tx = x + t.padX;
-      if (t.align === 'center') tx = x + (boxW - w) / 2;
-      else if (t.align === 'right') tx = x + boxW - t.padX - w;
-      ctx.fillText(line, tx, y + t.padY + i * lineH);
-    });
+    // Text
+    const raw = t.value == null ? '' : String(t.value);
+    if (raw.trim() === '') return;
 
-    state.textBox = { x, y, w: boxW, h: boxH };
+    c.font = `${t.weight} ${t.size}px ${t.font}`;
+    c.textBaseline = 'top';
+    c.fillStyle = t.color;
+
+    const innerW = Math.max(1, w - t.padX * 2);
+    const innerH = Math.max(1, h - t.padY * 2);
+    const lines = wrapText(c, raw, innerW);
+    const lineH = t.size * 1.25;
+    const totalTextH = lineH * lines.length;
+
+    let startY;
+    if (t.vAlign === 'top') startY = y + t.padY;
+    else if (t.vAlign === 'bottom') startY = y + h - t.padY - totalTextH;
+    else startY = y + t.padY + (innerH - totalTextH) / 2;
+
+    // Clip to box so text can't overflow the visible frame
+    c.save();
+    c.beginPath();
+    c.rect(x, y, w, h);
+    c.clip();
+    lines.forEach((line, i) => {
+      const lineW = c.measureText(line).width;
+      let tx;
+      if (t.align === 'center') tx = x + (w - lineW) / 2;
+      else if (t.align === 'right') tx = x + w - t.padX - lineW;
+      else tx = x + t.padX;
+      c.fillText(line, tx, startY + i * lineH);
+    });
+    c.restore();
+  }
+
+  function getHandleSize() {
+    return Math.max(14, Math.min(canvas.width, canvas.height) * 0.03);
+  }
+
+  // Handles + outline drawn ONLY on preview, never in export
+  function drawHandles() {
+    if (!state.text.enabled) return;
+    const t = state.text;
+    const s = getHandleSize();
+    const half = s / 2;
+
+    ctx.strokeStyle = 'rgba(109, 40, 217, 0.85)';
+    ctx.setLineDash([6, 4]);
+    ctx.lineWidth = Math.max(1, canvas.width / 800);
+    ctx.strokeRect(t.x + 0.5, t.y + 0.5, t.w, t.h);
+    ctx.setLineDash([]);
+
+    const corners = [
+      { x: t.x,       y: t.y       },
+      { x: t.x + t.w, y: t.y       },
+      { x: t.x,       y: t.y + t.h },
+      { x: t.x + t.w, y: t.y + t.h }
+    ];
+    ctx.fillStyle = '#ffffff';
+    ctx.strokeStyle = '#6d28d9';
+    ctx.lineWidth = Math.max(1.5, canvas.width / 600);
+    for (const c of corners) {
+      ctx.fillRect(c.x - half, c.y - half, s, s);
+      ctx.strokeRect(c.x - half, c.y - half, s, s);
+    }
   }
 
   function hexToRgba(hex, alpha) {
@@ -614,9 +693,23 @@
     return `rgba(${r},${g},${b},${alpha})`;
   }
 
-  // -------- Drag text box on canvas --------
-  let dragging = false;
-  const dragOffset = { x: 0, y: 0 };
+  function render() {
+    canvas.width = state.targetW;
+    canvas.height = state.targetH;
+    drawImageTo(ctx, canvas.width, canvas.height);
+    drawTextTo(ctx, canvas.width, canvas.height);
+    drawHandles();
+    $('output-size').textContent = `${state.targetW} × ${state.targetH}`;
+    $('drag-hint').hidden = !state.text.enabled;
+    // Sync W/H fields if user isn't actively editing them
+    if (state.text.enabled) {
+      if (document.activeElement !== $('text-w')) $('text-w').value = state.text.w;
+      if (document.activeElement !== $('text-h')) $('text-h').value = state.text.h;
+    }
+  }
+
+  // -------- Interaction: move + resize --------
+  let interaction = null;
 
   function canvasCoords(e) {
     const rect = canvas.getBoundingClientRect();
@@ -628,49 +721,121 @@
     };
   }
 
+  function hitTestHandle(p) {
+    const t = state.text;
+    const s = getHandleSize();
+    const half = s / 2 + Math.max(4, canvas.width / 300);
+    const corners = [
+      { x: t.x,       y: t.y,       name: 'tl' },
+      { x: t.x + t.w, y: t.y,       name: 'tr' },
+      { x: t.x,       y: t.y + t.h, name: 'bl' },
+      { x: t.x + t.w, y: t.y + t.h, name: 'br' }
+    ];
+    for (const c of corners) {
+      if (Math.abs(p.x - c.x) <= half && Math.abs(p.y - c.y) <= half) return c.name;
+    }
+    return null;
+  }
+
+  function pointInBox(p) {
+    const t = state.text;
+    return p.x >= t.x && p.x <= t.x + t.w && p.y >= t.y && p.y <= t.y + t.h;
+  }
+
   canvas.addEventListener('pointerdown', e => {
-    if (!state.text.enabled || !state.textBox) return;
+    if (!state.text.enabled) return;
     const p = canvasCoords(e);
-    const b = state.textBox;
-    if (p.x >= b.x && p.x <= b.x + b.w && p.y >= b.y && p.y <= b.y + b.h) {
-      dragging = true;
-      dragOffset.x = p.x - b.x;
-      dragOffset.y = p.y - b.y;
+    const handle = hitTestHandle(p);
+    if (handle) {
+      const t = state.text;
+      const anchors = {
+        tl: { x: t.x + t.w, y: t.y + t.h },
+        tr: { x: t.x,       y: t.y + t.h },
+        bl: { x: t.x + t.w, y: t.y       },
+        br: { x: t.x,       y: t.y       }
+      };
+      interaction = { mode: 'resize', corner: handle, anchor: anchors[handle] };
       canvas.setPointerCapture(e.pointerId);
-      canvas.classList.add('dragging');
+      canvas.style.cursor = CURSORS[handle];
+      return;
+    }
+    if (pointInBox(p)) {
+      interaction = {
+        mode: 'move',
+        offsetX: p.x - state.text.x,
+        offsetY: p.y - state.text.y
+      };
+      canvas.setPointerCapture(e.pointerId);
+      canvas.style.cursor = 'grabbing';
     }
   });
 
   canvas.addEventListener('pointermove', e => {
-    if (!dragging) return;
     const p = canvasCoords(e);
-    state.text.x = Math.round(p.x - dragOffset.x);
-    state.text.y = Math.round(p.y - dragOffset.y);
-    render();
+    if (interaction) {
+      if (interaction.mode === 'move') {
+        state.text.x = Math.round(p.x - interaction.offsetX);
+        state.text.y = Math.round(p.y - interaction.offsetY);
+      } else {
+        const a = interaction.anchor;
+        const c = interaction.corner;
+        let nx, ny, nw, nh;
+        if (c === 'br') {
+          nx = a.x; ny = a.y;
+          nw = Math.max(MIN_BOX, p.x - a.x);
+          nh = Math.max(MIN_BOX, p.y - a.y);
+        } else if (c === 'tl') {
+          nx = Math.min(p.x, a.x - MIN_BOX);
+          ny = Math.min(p.y, a.y - MIN_BOX);
+          nw = a.x - nx; nh = a.y - ny;
+        } else if (c === 'tr') {
+          nx = a.x;
+          ny = Math.min(p.y, a.y - MIN_BOX);
+          nw = Math.max(MIN_BOX, p.x - a.x);
+          nh = a.y - ny;
+        } else {
+          nx = Math.min(p.x, a.x - MIN_BOX);
+          ny = a.y;
+          nw = a.x - nx;
+          nh = Math.max(MIN_BOX, p.y - a.y);
+        }
+        state.text.x = Math.round(nx);
+        state.text.y = Math.round(ny);
+        state.text.w = Math.round(nw);
+        state.text.h = Math.round(nh);
+      }
+      render();
+      return;
+    }
+    // Hover cursor
+    if (!state.text.enabled) { canvas.style.cursor = ''; return; }
+    const handle = hitTestHandle(p);
+    if (handle) canvas.style.cursor = CURSORS[handle];
+    else if (pointInBox(p)) canvas.style.cursor = 'grab';
+    else canvas.style.cursor = '';
   });
 
-  function endDrag() {
-    dragging = false;
-    canvas.classList.remove('dragging');
+  function endInteraction() {
+    interaction = null;
+    canvas.style.cursor = '';
   }
-  canvas.addEventListener('pointerup', endDrag);
-  canvas.addEventListener('pointercancel', endDrag);
+  canvas.addEventListener('pointerup', endInteraction);
+  canvas.addEventListener('pointercancel', endInteraction);
 
-  // -------- Snap position grid --------
+  // -------- Snap grid --------
   function snapText(pos) {
-    if (!state.textBox) return;
-    const b = state.textBox;
+    const t = state.text;
     const margin = 20;
     const positions = {
       tl: [margin, margin],
-      tc: [(state.targetW - b.w) / 2, margin],
-      tr: [state.targetW - b.w - margin, margin],
-      ml: [margin, (state.targetH - b.h) / 2],
-      mc: [(state.targetW - b.w) / 2, (state.targetH - b.h) / 2],
-      mr: [state.targetW - b.w - margin, (state.targetH - b.h) / 2],
-      bl: [margin, state.targetH - b.h - margin],
-      bc: [(state.targetW - b.w) / 2, state.targetH - b.h - margin],
-      br: [state.targetW - b.w - margin, state.targetH - b.h - margin]
+      tc: [(state.targetW - t.w) / 2, margin],
+      tr: [state.targetW - t.w - margin, margin],
+      ml: [margin, (state.targetH - t.h) / 2],
+      mc: [(state.targetW - t.w) / 2, (state.targetH - t.h) / 2],
+      mr: [state.targetW - t.w - margin, (state.targetH - t.h) / 2],
+      bl: [margin, state.targetH - t.h - margin],
+      bc: [(state.targetW - t.w) / 2, state.targetH - t.h - margin],
+      br: [state.targetW - t.w - margin, state.targetH - t.h - margin]
     };
     const [x, y] = positions[pos];
     state.text.x = Math.round(x);
@@ -682,10 +847,16 @@
     b.addEventListener('click', () => snapText(b.dataset.pos));
   });
 
-  // -------- Download --------
+  // -------- Download (offscreen canvas so handles/outline never appear) --------
   function download(mime, ext, quality) {
     if (!state.image) return;
-    canvas.toBlob(blob => {
+    const off = document.createElement('canvas');
+    off.width = state.targetW;
+    off.height = state.targetH;
+    const offCtx = off.getContext('2d');
+    drawImageTo(offCtx, off.width, off.height);
+    drawTextTo(offCtx, off.width, off.height);
+    off.toBlob(blob => {
       if (!blob) { alert('Failed to create image.'); return; }
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -759,11 +930,22 @@
   });
   $('text-value').addEventListener('input', e => { state.text.value = e.target.value; render(); });
   $('text-font').addEventListener('change', e => { state.text.font = e.target.value; render(); });
-  $('text-size').addEventListener('input', e => { state.text.size = parseInt(e.target.value, 10) || 48; render(); });
+  $('text-size').addEventListener('input', e => { state.text.size = parseInt(e.target.value, 10) || 20; render(); });
   $('text-weight').addEventListener('change', e => { state.text.weight = e.target.value; render(); });
   $('text-align').addEventListener('change', e => { state.text.align = e.target.value; render(); });
+  $('text-valign').addEventListener('change', e => { state.text.vAlign = e.target.value; render(); });
   $('text-pad-x').addEventListener('input', e => { state.text.padX = parseInt(e.target.value, 10) || 0; render(); });
   $('text-pad-y').addEventListener('input', e => { state.text.padY = parseInt(e.target.value, 10) || 0; render(); });
+  $('text-w').addEventListener('input', e => {
+    const v = parseInt(e.target.value, 10);
+    if (!isNaN(v) && v >= MIN_BOX) { state.text.w = v; render(); }
+  });
+  $('text-h').addEventListener('input', e => {
+    const v = parseInt(e.target.value, 10);
+    if (!isNaN(v) && v >= MIN_BOX) { state.text.h = v; render(); }
+  });
+  $('text-w').addEventListener('blur', e => { e.target.value = state.text.w; });
+  $('text-h').addEventListener('blur', e => { e.target.value = state.text.h; });
 
   function syncColor(colorId, hexId, key) {
     const c = $(colorId), h = $(hexId);
